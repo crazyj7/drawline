@@ -1,0 +1,146 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <title>간단 드로잉</title>
+  <style>
+    body { margin: 20px; }
+    canvas {
+      border: 1px solid #ccc;
+      touch-action: none; /* 터치 스크롤 방지 */
+    }
+    button { margin: 5px; padding: 8px 12px; }
+    #dataUriOutput {
+      margin-top: 20px;
+      width: 100%;
+      max-width: 800px;
+      height: 150px;
+      padding: 10px;
+      border: 1px solid #ccc;
+      font-family: monospace;
+      font-size: 12px;
+      word-wrap: break-word;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="canvas" width="500" height="300"></canvas>
+  <br />
+  <button id="clearBtn">지우기</button>
+  <button id="savePngBtn">PNG로 저장</button>
+  <button id="saveJpgBtn">JPG로 저장</button>
+  <button id="dataUriBtn">Data URI로 변환</button>
+  <br />
+  <textarea id="dataUriOutput" placeholder="Data URI 코드가 여기에 표시됩니다..."></textarea>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // 선 스타일: 얇은 검은 선
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#000000';
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+
+    let drawing = false;
+    let lastX = 0;
+    let lastY = 0;
+
+    // 캔버스 좌표계로 변환
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      if (e.touches && e.touches[0]) {
+        return {
+          x: e.touches[0].clientX - rect.left,
+          y: e.touches[0].clientY - rect.top
+        };
+      } else {
+        return {
+          x: e.clientX - rect.left,
+          y: e.clientY - rect.top
+        };
+      }
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      const pos = getPos(e);
+      drawing = true;
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const pos = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(pos.x, pos.y);
+      ctx.stroke();
+      lastX = pos.x;
+      lastY = pos.y;
+    }
+
+    function endDraw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      drawing = false;
+    }
+
+    // 마우스 이벤트
+    canvas.addEventListener('mousedown', startDraw);
+    canvas.addEventListener('mousemove', draw);
+    canvas.addEventListener('mouseup', endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+
+    // 터치 이벤트
+    canvas.addEventListener('touchstart', startDraw);
+    canvas.addEventListener('touchmove', draw);
+    canvas.addEventListener('touchend', endDraw);
+    canvas.addEventListener('touchcancel', endDraw);
+
+    // 캔버스 지우기
+    document.getElementById('clearBtn').addEventListener('click', () => {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+    });
+
+    // PNG로 저장 (투명 배경)
+    document.getElementById('savePngBtn').addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.href = canvas.toDataURL('image/png');
+      link.download = 'drawing.png';
+      link.click();
+    });
+
+    // JPG로 저장 (흰 배경, 품질 0.9)
+    document.getElementById('saveJpgBtn').addEventListener('click', () => {
+      // 흰 배경으로 임시 캔버스 생성 (JPG는 투명도 지원 안함)
+      const tempCanvas = document.createElement('canvas');
+      const tempCtx = tempCanvas.getContext('2d');
+      tempCanvas.width = canvas.width;
+      tempCanvas.height = canvas.height;
+      
+      // 흰 배경 채우기
+      tempCtx.fillStyle = '#ffffff';
+      tempCtx.fillRect(0, 0, canvas.width, canvas.height);
+      
+      // 원본 그림 복사
+      tempCtx.drawImage(canvas, 0, 0);
+      
+      const link = document.createElement('a');
+      link.href = tempCanvas.toDataURL('image/jpeg', 0.9); // JPG, 90% 품질
+      link.download = 'drawing.jpg';
+      link.click();
+    });
+
+    // Data URI로 변환
+    document.getElementById('dataUriBtn').addEventListener('click', () => {
+      const dataUri = canvas.toDataURL('image/png');
+      document.getElementById('dataUriOutput').value = dataUri;
+    });
+  </script>
+</body>
+</html>
